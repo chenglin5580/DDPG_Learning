@@ -39,8 +39,15 @@ class ddpg(object):
             self.ae_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/eval')
             self.at_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/target')
         with tf.variable_scope('Critic'):
-            q = self._build_c(self.S, self.a, scope='eval', trainable=True)
-            q_ = self._build_c(self.S_, a_, scope='target', trainable=False)
+            with tf.variable_scope('eval'):
+                q_val = self._build_val(self.S, self.a, scope='eval_val', trainable=True)
+                q_adv = self._build_adv(self.S, self.a, scope='eval_adv', trainable=True)
+                q = tf.add(q_val, q_adv)
+            with tf.variable_scope('target'):
+                q_val_ = self._build_val(self.S_, a_, scope='target_val', trainable=False)
+                q_adv_ = self._build_adv(self.S_, a_, scope='target_adv', trainable=False)
+                q_ = tf.add(q_val_, q_adv_)
+
             # tf.summary.histogram('Critic/eval', q)
             # tf.summary.histogram('Critic/target', q_)
             self.ce_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/eval')
@@ -59,7 +66,7 @@ class ddpg(object):
         tf.summary.scalar('td_error', td_error)
         self.ctrain = tf.train.AdamOptimizer(self.LR_C).minimize(td_error, var_list=self.ce_params)
 
-        a_loss = - tf.reduce_mean(q)  # maximize the q
+        a_loss = - tf.reduce_mean(q_adv)  # maximize the q_adv
         # tf.summary.scalar('a_loss', a_loss)
         self.atrain = tf.train.AdamOptimizer(self.LR_A).minimize(a_loss, var_list=self.ae_params)
 
@@ -108,21 +115,24 @@ class ddpg(object):
             return tf.multiply(a, self.a_bound[0], name='scaled_a') + self.a_bound[1]
 
 
-    def _build_c(self, s, a, scope, trainable):
+    def _build_val(self, s, a, scope, trainable):
         with tf.variable_scope(scope):
             # value network
             n_l1 = 10
             net1 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, trainable=trainable)
             q_val = tf.layers.dense(net1, 1, trainable=trainable)
+            return q_val
+
+    def _build_adv(self, s, a, scope, trainable):
+        with tf.variable_scope(scope):
             # advantage network
-            n_l2 = 10
+            n_l2 = 30
             w1_s = tf.get_variable('w1_s', [self.s_dim, n_l2], trainable=trainable)
             w1_a = tf.get_variable('w1_a', [self.a_dim, n_l2], trainable=trainable)
             b1 = tf.get_variable('b1', [1, n_l2], trainable=trainable)
             net2 = tf.nn.relu(tf.matmul(s, w1_s) + tf.matmul(a, w1_a) + b1)
             q_adv = tf.layers.dense(net2, 1, trainable=trainable)  # Q(s,a)
-            q = tf.add(q_val, q_adv)
-            return q
+            return q_adv
 
     def net_save(self):
         self.actor_saver.save(self.sess, self.modelpath)
