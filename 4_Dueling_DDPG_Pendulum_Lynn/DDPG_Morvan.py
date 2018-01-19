@@ -110,12 +110,18 @@ class ddpg(object):
 
     def _build_c(self, s, a, scope, trainable):
         with tf.variable_scope(scope):
-            n_l1 = 30
-            w1_s = tf.get_variable('w1_s', [self.s_dim, n_l1], trainable=trainable)
-            w1_a = tf.get_variable('w1_a', [self.a_dim, n_l1], trainable=trainable)
-            b1 = tf.get_variable('b1', [1, n_l1], trainable=trainable)
-            net = tf.nn.relu(tf.matmul(s, w1_s) + tf.matmul(a, w1_a) + b1)
-            q = tf.layers.dense(net, 1, trainable=trainable)  # Q(s,a)
+            # value network
+            n_l1 = 10
+            net1 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, trainable=trainable)
+            q_val = tf.layers.dense(net1, 1, trainable=trainable)
+            # advantage network
+            n_l2 = 10
+            w1_s = tf.get_variable('w1_s', [self.s_dim, n_l2], trainable=trainable)
+            w1_a = tf.get_variable('w1_a', [self.a_dim, n_l2], trainable=trainable)
+            b1 = tf.get_variable('b1', [1, n_l2], trainable=trainable)
+            net2 = tf.nn.relu(tf.matmul(s, w1_s) + tf.matmul(a, w1_a) + b1)
+            q_adv = tf.layers.dense(net2, 1, trainable=trainable)  # Q(s,a)
+            q = tf.add(q_val, q_adv)
             return q
 
     def net_save(self):
