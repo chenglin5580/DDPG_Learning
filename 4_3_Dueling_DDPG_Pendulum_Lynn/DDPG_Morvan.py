@@ -39,8 +39,8 @@ class ddpg(object):
             self.ae_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/eval')
             self.at_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/target')
         with tf.variable_scope('Critic'):
-            q = self._build_c(self.S, self.a, scope='eval', trainable=True)
-            q_ = self._build_c(self.S_, a_, scope='target', trainable=False)
+            q, q_adv = self._build_c(self.S, self.a, scope='eval', trainable=True)
+            q_, q_adv_ = self._build_c(self.S_, a_, scope='target', trainable=False)
             # tf.summary.histogram('Critic/eval', q)
             # tf.summary.histogram('Critic/target', q_)
             self.ce_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/eval')
@@ -59,7 +59,7 @@ class ddpg(object):
         tf.summary.scalar('td_error', td_error)
         self.ctrain = tf.train.AdamOptimizer(self.LR_C).minimize(td_error, var_list=self.ce_params)
 
-        a_loss = - tf.reduce_mean(q)  # maximize the q
+        a_loss = - tf.reduce_mean(q_adv)  # maximize the q
         # tf.summary.scalar('a_loss', a_loss)
         self.atrain = tf.train.AdamOptimizer(self.LR_A).minimize(a_loss, var_list=self.ae_params)
 
@@ -123,8 +123,10 @@ class ddpg(object):
             b1 = tf.get_variable('b1', [1, n_l2], trainable=trainable)
             net2 = tf.nn.relu(tf.matmul(net1, w1_s) + tf.matmul(a, w1_a) + b1)
             q_adv = tf.layers.dense(net2, 1, trainable=trainable)
-            q = tf.add(q_val, q_adv)
-            return q
+            q = q_val+q_adv
+            return q, q_adv
+
+
 
     def net_save(self):
         self.actor_saver.save(self.sess, self.modelpath)
