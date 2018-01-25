@@ -9,7 +9,7 @@ import gym
 from DDPG_Morvan import ddpg
 
 ############################ Object and Method  ####################################
-ENV_NAME = 'Pendulum-v0'
+ENV_NAME = 'MountainCarContinuous-v0'
 env = gym.make(ENV_NAME)
 env = env.unwrapped
 env.seed(1)
@@ -34,8 +34,7 @@ RENDER = False
 
 max_Episodes = 200
 max_Step = 200
-
-var = 3  # control exploration
+var = 3
 for i in range(max_Episodes):
     state_new = env.reset()
     ep_reward = 0
@@ -49,7 +48,7 @@ for i in range(max_Episodes):
 
         state_new = state_next
         ep_reward += reward
-        if j == max_Step-1:
+        if done or j == max_Step-1:
             print('Episode:', i, ' Reward: %i' % int(ep_reward), 'Explore: %.2f' % var, )
             # if ep_reward > -300:
             break

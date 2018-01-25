@@ -34,22 +34,21 @@ RENDER = False
 
 max_Episodes = 200
 max_Step = 200
-
 var = 3  # control exploration
 for i in range(max_Episodes):
-    state_new = env.reset()
+    state_now = env.reset()
     ep_reward = 0
     for j in range(max_Step):
 
         env.render()
 
         # Add exploration noise
-        action = ddpg.choose_action(state_new)
+        action = ddpg.choose_action(state_now)
         state_next, reward, done, info = env.step(action)
 
-        state_new = state_next
+        state_now = state_next
         ep_reward += reward
-        if j == max_Step-1:
+        if done or j == max_Step-1:
             print('Episode:', i, ' Reward: %i' % int(ep_reward), 'Explore: %.2f' % var, )
             # if ep_reward > -300:
             break

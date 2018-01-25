@@ -8,6 +8,7 @@ Designer: Lin Cheng  2018.01.19
 import numpy as np
 import gym
 from DDPG_Morvan import ddpg
+import matplotlib.pyplot as plt
 
 ############################ Object and Method  ####################################
 ENV_NAME = 'MountainCarContinuous-v0'
@@ -33,9 +34,11 @@ ddpg = ddpg(a_dim, s_dim, a_bound)
 ###############################  training  ####################################
 RENDER = False
 
-max_Episodes = 1000
+max_Episodes = 300
 Learning_Start = False
 var = 5  # control exploration
+step_me = np.zeros([max_Episodes])
+reward_me = np.zeros([max_Episodes])
 for i in range(max_Episodes):
     state_new = env.reset()
     ep_reward = 0
@@ -66,6 +69,18 @@ for i in range(max_Episodes):
             print('Episode:', i, ' Reward: %i' % int(ep_reward), 'step', j,  'Explore: %.2f' % var, )
             # if ep_reward > -300:
             break
+    step_me[i] = j
+    reward_me[i] = ep_reward
     if var < 0.1:
         break
+
 ddpg.net_save()
+
+plt.figure(1)
+plt.plot(step_me)
+plt.savefig("step_me.png")
+
+plt.figure(2)
+plt.plot(reward_me)
+plt.savefig("reward_me.png")
+plt.show()
